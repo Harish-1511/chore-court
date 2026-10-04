@@ -2,12 +2,12 @@
 
 ## What I Built
 
-**Chore Court — Roommate Justice System.** File roommate grievances (dishes, noise, thermostat wars) as structured Sanity documents, try them on a public Wall, sentence them from a custom Judge Bench.
+**Chore Court — a fun court for roommates.** If someone leaves dishes, makes noise at 2am, or steals food, you file a small case. A judge then gives a funny punishment like "do dishes 3 times".
 
-- Public Wall `/`: Next.js App Router + GROQ with dereferencing (`plaintiff->name`, `defendant->name`, verdict join), ordered by severity.
-- Judge Bench `/bench`: custom real-time app (App SDK direction, `@sanity/sdk-react` in deps), not Studio. Judge sign input, filter by status, live counts, gavel buttons, stenographer log.
-- Workflow as data: `filed -> deliberating -> sentenced -> served | pardoned`, `appeal: sentenced -> deliberating`. Guard: no `sentenced` without judge signature (`decidedBy`).
-- Works with NO credentials via `web/lib/mock.ts` fallback, goes live with Sanity env.
+- Wall `/`: a simple board that shows all cases. It reads from Sanity, so names and punishments always stay linked.
+- Bench `/bench`: the judge's page. The judge picks a case, starts the trial, signs a punishment, or forgives. No login needed.
+- Simple steps for each case: filed -> discussing -> punished -> done or forgiven. If someone appeals, it goes back to discussing. A case can't be punished without a judge's name.
+- Works even without setup: if Sanity keys are missing, it shows demo cases. Add keys and it shows real live data.
 
 ## Demo
 
