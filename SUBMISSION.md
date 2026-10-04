@@ -12,7 +12,8 @@
 ## Demo
 
 - Code: https://github.com/Harish-1511/chore-court
-- Live demo: [TODO: add Vercel URL after `vercel --prod`] — then Wall at `/`, Bench at `/bench`
+- Live demo: https://chore-court.vercel.app/ — Wall at `/`, Bench at https://chore-court.vercel.app/bench
+- Note: Vercel currently shows "Demo mode" (mock data, no Sanity env set there yet). Add `NEXT_PUBLIC_SANITY_PROJECT_ID=01zrqiht`, `NEXT_PUBLIC_SANITY_DATASET=production` in Vercel env + redeploy to show "Live from the Content Lake".
 - Local run (verified):
   ```powershell
   cd chore-court/web
