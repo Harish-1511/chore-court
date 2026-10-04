@@ -2,29 +2,85 @@
 
 ## What I Built
 
-Chore Court — roommate justice system. File grievances (dishes, noise, thermostat wars) as Sanity docs, try them on a public Wall (Next.js + GROQ), sentence them from a custom Judge Bench (App SDK real-time app). Workflow moves cases: filed -> deliberating -> sentenced -> served|pardoned, appeal reopens to deliberating.
+**Chore Court — Roommate Justice System.** File roommate grievances (dishes, noise, thermostat wars) as structured Sanity documents, try them on a public Wall, sentence them from a custom Judge Bench.
 
-Demo: [vercel link] / Bench: /bench (no login, demo mode works without creds)
-Code: [github link]
+- Public Wall `/`: Next.js App Router + GROQ with dereferencing (`plaintiff->name`, `defendant->name`, verdict join), ordered by severity.
+- Judge Bench `/bench`: custom real-time app (App SDK direction, `@sanity/sdk-react` in deps), not Studio. Judge sign input, filter by status, live counts, gavel buttons, stenographer log.
+- Workflow as data: `filed -> deliberating -> sentenced -> served | pardoned`, `appeal: sentenced -> deliberating`. Guard: no `sentenced` without judge signature (`decidedBy`).
+- Works with NO credentials via `web/lib/mock.ts` fallback, goes live with Sanity env.
 
 ## Demo
-Screenshots: wall + bench with status transitions. Video: file -> claim -> sentence (judge signs) -> served.
+
+- Code: https://github.com/Harish-1511/chore-court
+- Live demo: [TODO: add Vercel URL after `vercel --prod`] — then Wall at `/`, Bench at `/bench`
+- Local run (verified):
+  ```powershell
+  cd chore-court/web
+  npm install
+  npm run dev
+  # http://localhost:3000 (Wall — shows "Live from the Content Lake" when env present)
+  # http://localhost:3000/bench (Bench — no login required)
+  ```
+- No login required. Judges can click immediately (mock fallback) or with live Sanity data.
+- Suggested video flow (60s): Wall overview -> Bench claim `filed -> deliberating` -> sentence with judge sign `-> sentenced` -> mark served / pardon / appeal reopen.
 
 ## Code
-Repo: chore-court/ — `sanity/schemas/` (person, grievance, verdict, appeal), `sanity/workflows/choreCourt.ts`, `web/app/` (wall + bench), `web/lib/sanity.ts` GROQ.
+
+Repo: https://github.com/Harish-1511/chore-court
+
+```
+chore-court/
+  sanity/
+    schemas/person.ts        # roommate / judge
+    schemas/grievance.ts     # title, charge, plaintiff->person, defendant->person, details, severity 1-5, evidence images, status, filedAt
+    schemas/verdict.ts       # case ref, sentence, decidedBy
+    schemas/appeal.ts        # case ref, reason, reopens to deliberating
+    schemas/index.ts
+    workflows/choreCourt.ts  # stages + transitions + guards as data
+    sanity.config.ts
+    seed.mjs                 # 4 people + 8 cases via API
+  web/
+    app/page.tsx             # Wall, getCases() + GROQ
+    app/bench/page.tsx       # Bench, state machine mirroring workflow guards
+    app/layout.tsx, globals.css
+    lib/sanity.ts            # CASES_QUERY + live/mock switch
+    lib/mock.ts              # 8 mock cases + NEXT_TRANSITIONS
+```
 
 ## My Build Process
+
 IDE: OpenCode + Muse Spark.
-Prompt 1 that worked: "Next.js app-router, Sanity GROQ with plaintiff-> deref + verdict join, mock fallback when env missing" — got wall in one shot.
-Prompt that failed: "wire @sanity/sdk-react useDocuments live" — kept hanging without Dashboard host/Safari mixed-content issue from docs. Course-correct: bench keeps same state machine locally (mirrors workflow guards) so judges can click with zero setup; SDK hooks commented where token exists. Honest trade-off.
-Stuck: Workflows early-access CLI needs Dashboard deploy; I modeled definition as data (stages/transitions/guards) + enforced same guards in bench UI (decidedBy non-empty to enter sentenced).
-App SDK: custom bench with judge sign input, filter by status, live counts — not a read-only frontend.
-Workflows: process-as-data, agent clerk + human judge share transitions.
+
+Prompt that worked: "Next.js app-router, Sanity GROQ with plaintiff-> deref + verdict join, mock fallback when env missing" — got Wall in one shot (`web/lib/sanity.ts:12`, `web/app/page.tsx:14`).
+
+Prompt that failed: "wire @sanity/sdk-react useDocuments live" — kept hanging without Dashboard host. Course-correct: Bench keeps the same state machine locally and mirrors workflow guards (`web/app/bench/page.tsx:15`, `web/lib/mock.ts:31`), so judges can click with zero setup. SDK dep stays in `web/package.json:15` for the live path. Honest trade-off documented in repo.
+
+Stuck: Workflows early-access CLI needs Dashboard deploy. Modeled definition as data (`sanity/workflows/choreCourt.ts:7` — stages/transitions/guards, cookbook editorial-review shape) + enforced same guards in Bench UI (`decidedBy` non-empty to enter `sentenced`, `served`/`pardoned` terminal).
+
+- App SDK: custom Bench with judge sign input, status filter, live counts — not a read-only frontend.
+- Workflows: process-as-data, agent clerk + human judge share transitions.
+
+Verified: `npm run build` passes (5 static pages), `npm start` 200 on `/` + `/bench`, live GROQ returns 8 grievances with dereferenced names.
 
 ## Sanity Project Details
-Project ID: 01zrqiht
-Dataset: production (public URL: https://01zrqiht.api.sanity.io/v2026-09-01/data/query/production?query=*%5B_type%3D%3D%22grievance%22%5D%5B0%5D)
-Schema + GROQ in repo. Seed: `sanity/seed.mjs` (8 cases + 4 people, verified live) or mock in `web/lib/mock.ts`.
+
+- Project ID: `01zrqiht`
+- Dataset: `production` (public, ACL `public`)
+- Public queries:
+  - Grievances: https://01zrqiht.api.sanity.io/v2026-09-01/data/query/production?query=*%5B_type%3D%3D%22grievance%22%5D%5B0..7%5D%7B_title%2Ccharge%2Cstatus%2Cplaintiff-%3Ename%2Cdefendant-%3Ename%7D
+  - All docs: https://01zrqiht.api.sanity.io/v2026-09-01/data/query/production?query=*%5B_type+in+%5B%22grievance%22%2C%22person%22%5D%5D%5B0..12%5D
+- Studio: `cd sanity; npm install; npm run dev` (uses `SANITY_STUDIO_PROJECT_ID=01zrqiht`)
+- Seed: `sanity/seed.mjs` — verified `Seeded 8 cases` (4 people + 8 grievances = 12 docs live)
+- GROQ (`web/lib/sanity.ts`):
+  ```groq
+  *[_type=="grievance"]{
+    _id, title, charge, details, severity, status,
+    "plaintiffName": plaintiff->name,
+    "defendantName": defendant->name,
+    "verdict": *[_type=="verdict" && case._ref==^._id][0]{sentence, decidedBy}
+  } | order(severity desc)
+  ```
 
 ## Agent Session
-[upload transcript at dev.to/agent_sessions/new, Make Public, embed here]
+
+TODO (optional but encouraged): upload transcript at https://dev.to/agent_sessions/new, hit Make Public, embed here. Scrub tokens before publishing.
