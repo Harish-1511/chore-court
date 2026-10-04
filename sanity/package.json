@@ -1,0 +1,17 @@
+{
+  "name": "chore-court-sanity",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "seed": "node seed.mjs"
+  },
+  "dependencies": {
+    "sanity": "^3.80.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@sanity/workflow-engine": "latest"
+  }
+}
